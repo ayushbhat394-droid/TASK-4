@@ -1,0 +1,134 @@
+from flask import Flask, render_template_string, request, redirect, url_for, session, flash
+from werkzeug.security import generate_password_hash, check_password_hash
+
+app = Flask(_name_)
+app.secret_key = 'your_secret_key'  # Change this for security
+
+# In-memory user database (dictionary)
+users = {}
+
+# --- HTML Templates as Python strings ---
+home_html = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+</head>
+<body>
+    <h2>Welcome to the Simple Login System</h2>
+    <a href="{{ url_for('register') }}">Register</a> |
+    <a href="{{ url_for('login') }}">Login</a>
+</body>
+</html>
+'''
+
+register_html = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+</head>
+<body>
+    <h2>Register</h2>
+    <form method="POST">
+        <label>Username:</label><br>
+        <input type="text" name="username" required><br><br>
+        <label>Password:</label><br>
+        <input type="password" name="password" required><br><br>
+        <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a>.</p>
+</body>
+</html>
+'''
+
+login_html = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form method="POST">
+        <label>Username:</label><br>
+        <input type="text" name="username" required><br><br>
+        <label>Password:</label><br>
+        <input type="password" name="password" required><br><br>
+        <button type="submit">Login</button>
+    </form>
+    <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a>.</p>
+</body>
+</html>
+'''
+
+dashboard_html = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h2>Welcome, {{ user }}!</h2>
+    <p>This is a secured page accessible only after login.</p>
+    <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>
+'''
+
+# --- Routes ---
+
+@app.route('/')
+def home():
+    return render_template_string(home_html)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if username in users:
+            flash('Username already exists!')
+            return redirect(url_for('register'))
+        
+        users[username] = generate_password_hash(password)
+        flash('Registration successful! Please log in.')
+        return redirect(url_for('login'))
+    
+    return render_template_string(register_html)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if username not in users or not check_password_hash(users[username], password):
+            flash('Invalid username or password!')
+            return redirect(url_for('login'))
+        
+        session['user'] = username
+        flash('Login successful!')
+        return redirect(url_for('dashboard'))
+    
+    return render_template_string(login_html)
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user' not in session:
+        flash('Please log in first!')
+        return redirect(url_for('login'))
+    return render_template_string(dashboard_html, user=session['user'])
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    flash('You have been logged out.')
+    return redirect(url_for('home'))
+
+# --- Run the App ---
+if _name_ == '_main_':
+    app.run(debug=True)
+
+login authentication
